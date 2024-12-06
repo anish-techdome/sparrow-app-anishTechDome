@@ -1,11 +1,14 @@
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+import { primaryMonitor } from "@tauri-apps/api/window";
 
-export const maximizeWindow = async () => {
+export const resizeWindowOnLogin = async () => {
   const isMaximized = await getCurrentWindow().isMaximized();
   if (!isMaximized) {
-    await getCurrentWindow().toggleMaximize();
-    await getCurrentWindow().setFocus();
-    await getCurrentWindow().center();
+    const monitor = await primaryMonitor();
+    if (monitor) {
+      await getCurrentWindow().setPosition(monitor.position);
+      await getCurrentWindow().setSize(monitor.size);
+    }
   }
 };
 

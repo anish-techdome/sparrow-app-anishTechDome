@@ -232,7 +232,7 @@
     <!-- 
       -- Dashboard renders any of the pages between collection, environment and help.
     -->
-    <section style="flex:1; overflow:hidden;">
+    <section style="flex:1; overflow:auto;">
       <!-- Route for Collections -->
       <Route path="/collections/*">
         <CollectionsPage />
