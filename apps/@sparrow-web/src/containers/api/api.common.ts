@@ -22,7 +22,11 @@ import { socketIoDataStore } from "../../../../../packages/@sparrow-workspaces/s
 import io from "socket.io-client";
 import { TabRepository } from "src/repositories/tab.repository";
 import { WorkspaceUserAgentBaseEnum } from "@sparrow/common/types/workspace/workspace-base";
-import { SocketIORequestMessageTransmitterTabEnum, SocketIORequestStatusTabEnum, type EventsValues } from "@sparrow/common/types/workspace/socket-io-request-tab";
+import {
+  SocketIORequestMessageTransmitterTabEnum,
+  SocketIORequestStatusTabEnum,
+  type EventsValues,
+} from "@sparrow/common/types/workspace/socket-io-request-tab";
 import { Sleep } from "@sparrow/common/utils";
 const tabRepository = new TabRepository();
 const apiTimeOut = constants.API_SEND_TIMEOUT;
@@ -252,41 +256,40 @@ function formatTime(date) {
  *
  */
 const sendMessage = async (tab_id: string, message: string) => {
-  // debugger;
-  await invoke("send_websocket_message", { tabid: tab_id, message: message })
-    .then(async (data: string) => {
-      try {
-        // Logic to handle response
+  const selectedAgent = localStorage.getItem(
+    "selectedAgent",
+  ) as WorkspaceUserAgentBaseEnum;
 
-        webSocketDataStore.update((webSocketDataMap) => {
-          const wsData = webSocketDataMap.get(tab_id);
-          if (wsData) {
-            wsData.messages.unshift({
-              data: message,
-              transmitter: "sender",
-              timestamp: formatTime(new Date()),
-              uuid: uuidv4(),
-            });
-            webSocketDataMap.set(tab_id, wsData);
-          }
-          return webSocketDataMap;
-        });
-      } catch (e) {
-        console.error(e);
-        return error("error");
+  try {
+    webSocketDataStore.update((webSocketDataMap) => {
+      const wsData = webSocketDataMap.get(tab_id);
+      if (wsData) {
+        const listener = wsData.listener;
+        if (
+          wsData.agent === WorkspaceUserAgentBaseEnum.BROWSER_AGENT ||
+          wsData.agent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT
+        ) {
+          wsData.messages.unshift({
+            data: message,
+            transmitter: "sender",
+            timestamp: formatTime(new Date()),
+            uuid: uuidv4(),
+          });
+          listener.send(message);
+          webSocketDataMap.set(tab_id, wsData);
+        }
       }
-    })
-    .catch((e) => {
-      console.error(e);
-      return error("error");
+      return webSocketDataMap;
     });
+  } catch (e) {
+    console.error(e);
+    notifications.error("Failed to send message");
+    return error("error");
+  }
 };
 
 /**
  * Disconnects a WebSocket connection for a specific tab and handles the response.
- *
- * @param tab_id - The ID of the tab for which the WebSocket connection should be disconnected.
- *
  */
 const disconnectWebSocket = async (tab_id: string) => {
   let url = "";
@@ -300,39 +303,28 @@ const disconnectWebSocket = async (tab_id: string) => {
     }
     return webSocketDataMap;
   });
-  await invoke("disconnect_websocket", { tabid: tab_id })
-    .then(async (data: string) => {
-      try {
-        // Logic to handle response
-        webSocketDataStore.update((webSocketDataMap) => {
-          const wsData = webSocketDataMap.get(tab_id);
-          if (wsData) {
-            wsData.messages.unshift({
-              data: `Disconnected from ${url}`,
-              transmitter: "disconnector",
-              timestamp: formatTime(new Date()),
-              uuid: uuidv4(),
-            });
-            wsData.status = "disconnected";
-            webSocketDataMap.set(tab_id, wsData);
-          }
-          return webSocketDataMap;
-        });
-        notifications.success("WebSocket disconnected successfully.");
-      } catch (e) {
-        console.error(e);
-        notifications.error(
-          "Failed to disconnect WebSocket. Please try again.",
-        );
-        return error("error");
+
+  webSocketDataStore.update((webSocketDataMap) => {
+    const wsData = webSocketDataMap.get(tab_id);
+    if (wsData) {
+      const socketInsta = wsData.listener;
+      if (
+        wsData.agent === WorkspaceUserAgentBaseEnum.BROWSER_AGENT ||
+        wsData.agent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT
+      ) {
+        socketInsta.close();
       }
-    })
-    .catch((e) => {
-      console.error(e);
-      notifications.error("Failed to disconnect WebSocket. Please try again.");
-      return error("error");
-    });
+    }
+    return webSocketDataMap;
+  });
 };
+
+/**
+ * Disconnects a WebSocket connection for a specific tab and handles the response.
+ *
+ * @param tab_id - The ID of the tab for which the WebSocket connection should be disconnected.
+ *
+ */
 
 const convertWebSocketUrl = (url: string) => {
   // Check if the URL starts with 'wss://'
@@ -364,58 +356,66 @@ const connectWebSocket = async (
   tabId: string,
   requestHeaders: string,
 ) => {
-  // debugger;
-  const httpurl = convertWebSocketUrl(url);
-  console.table({ url, httpurl, tabId, requestHeaders });
-  webSocketDataStore.update((webSocketDataMap) => {
-    webSocketDataMap.set(tabId, {
-      messages: [],
-      status: "connecting",
-      search: "",
-      contentType: RequestDataTypeEnum.TEXT,
-      body: "",
-      filter: "All Messages",
-      url: url,
-    });
+  const selectedAgent = localStorage.getItem(
+    "selectedAgent",
+  ) as WorkspaceUserAgentBaseEnum;
 
-    return webSocketDataMap;
-  });
-  await invoke("connect_websocket", {
-    url: url,
-    httpurl: httpurl,
-    tabid: tabId,
-    headers: requestHeaders,
-  })
-    .then(async (data: string) => {
-      try {
-        // Logic to handle response
-        if (data) {
-          const dt = JSON.parse(data);
-        }
-        // Store the WebSocket and initialize data
-        webSocketDataStore.update((webSocketDataMap) => {
-          const wsData = webSocketDataMap.get(tabId);
-          if (wsData) {
-            wsData.messages.unshift({
-              data: `Connected from ${url}`,
-              transmitter: "connecter",
-              timestamp: formatTime(new Date()),
-              uuid: uuidv4(),
-            });
-            wsData.status = "connected";
-            webSocketDataMap.set(tabId, wsData);
-          }
-          return webSocketDataMap;
+  if (selectedAgent === WorkspaceUserAgentBaseEnum.BROWSER_AGENT) {
+    // Existing browser agent implementation remains the same
+    try {
+      const headers = JSON.parse(requestHeaders);
+
+      webSocketDataStore.update((webSocketDataMap) => {
+        webSocketDataMap.set(tabId, {
+          messages: [],
+          status: "connecting",
+          agent: selectedAgent,
+          search: "",
+          contentType: RequestDataTypeEnum.TEXT,
+          body: "",
+          filter: "All Messages",
+          url: url,
         });
-        notifications.success("WebSocket connected successfully");
+        return webSocketDataMap;
+      });
 
-        // All the response of particular web socket can be listened here. (Can be shifted to another place)
-        listen(`ws_message_${tabId}`, (event) => {
+      const ws = new WebSocket(url);
+
+      webSocketDataStore.update((webSocketDataMap) => {
+        const wsData = webSocketDataMap.get(tabId);
+        if (wsData) {
+          wsData.listener = ws;
+          webSocketDataMap.set(tabId, wsData);
+        }
+        return webSocketDataMap;
+      });
+
+      return new Promise((resolve, reject) => {
+        ws.onopen = () => {
           webSocketDataStore.update((webSocketDataMap) => {
             const wsData = webSocketDataMap.get(tabId);
             if (wsData) {
               wsData.messages.unshift({
-                data: event.payload,
+                data: `Connected to ${url}`,
+                transmitter: "connecter",
+                timestamp: formatTime(new Date()),
+                uuid: uuidv4(),
+              });
+              wsData.status = "connected";
+              webSocketDataMap.set(tabId, wsData);
+            }
+            return webSocketDataMap;
+          });
+          notifications.success("WebSocket connected successfully");
+          resolve();
+        };
+
+        ws.onmessage = (event) => {
+          webSocketDataStore.update((webSocketDataMap) => {
+            const wsData = webSocketDataMap.get(tabId);
+            if (wsData) {
+              wsData.messages.unshift({
+                data: event.data,
                 transmitter: "receiver",
                 timestamp: formatTime(new Date()),
                 uuid: uuidv4(),
@@ -424,24 +424,238 @@ const connectWebSocket = async (
             }
             return webSocketDataMap;
           });
-        });
-      } catch (e) {
-        console.error(e);
-        notifications.error(
-          "Failed to fetch WebSocket response. Please try again.",
-        );
-        return error("error");
-      }
-    })
-    .catch((e) => {
-      console.error(e);
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          webSocketDataStore.update((webSocketDataMap) => {
+            webSocketDataMap.delete(tabId);
+            return webSocketDataMap;
+          });
+        };
+
+        ws.onclose = () => {
+          webSocketDataStore.update((webSocketDataMap) => {
+            const wsData = webSocketDataMap.get(tabId);
+            if (wsData) {
+              wsData.messages.unshift({
+                data: `Disconnected from ${url}`,
+                transmitter: "disconnector",
+                timestamp: formatTime(new Date()),
+                uuid: uuidv4(),
+              });
+              wsData.status = "disconnected";
+              webSocketDataMap.set(tabId, wsData);
+            }
+            return webSocketDataMap;
+          });
+        };
+      });
+    } catch (error) {
+      console.error(error);
       webSocketDataStore.update((webSocketDataMap) => {
         webSocketDataMap.delete(tabId);
         return webSocketDataMap;
       });
-      notifications.error("Failed to connect WebSocket. Please try again.");
-      return error("error");
-    });
+      notifications.error("Failed to connect WebSocket");
+      throw error;
+    }
+  } else if (selectedAgent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT) {
+    try {
+      // Initialize store with connecting status
+      try {
+        webSocketDataStore.update((webSocketDataMap) => {
+          webSocketDataMap.set(tabId, {
+            messages: [],
+            status: "connecting",
+            agent: selectedAgent,
+            search: "",
+            contentType: RequestDataTypeEnum.TEXT,
+            body: "",
+            filter: "All Messages",
+            url: url,
+          });
+          return webSocketDataMap;
+        });
+      } catch (storeError) {
+        console.error("Failed to initialize WebSocket store:", storeError);
+        notifications.error("Failed to initialize WebSocket connection state");
+        throw new Error(`Store initialization failed: ${storeError.message}`);
+      }
+
+      // Validate and construct proxy URL
+      let proxyUrl;
+      try {
+        if (!url) throw new Error("Target URL is required");
+        if (!tabId) throw new Error("Tab ID is required");
+        proxyUrl = `ws://localhost:9005/ws?tabid=${encodeURIComponent(tabId)}&targetUrl=${url}`;
+        proxyUrl = convertWebSocketUrl(proxyUrl);
+      } catch (urlError) {
+        console.error("Invalid URL or tabId:", urlError);
+        notifications.error("Invalid connection parameters");
+        throw new Error(`URL construction failed: ${urlError.message}`);
+      }
+
+      // Create WebSocket connection
+      let ws;
+      try {
+        ws = new WebSocket(proxyUrl, ["Auth", "Nayan"]);
+      } catch (wsError) {
+        console.error("WebSocket creation failed:", wsError);
+        notifications.error("Failed to create WebSocket connection");
+        throw new Error(`WebSocket initialization failed: ${wsError.message}`);
+      }
+
+      // Update store with WebSocket instance
+      try {
+        webSocketDataStore.update((webSocketDataMap) => {
+          const wsData = webSocketDataMap.get(tabId);
+          if (wsData) {
+            wsData.listener = ws;
+            webSocketDataMap.set(tabId, wsData);
+          }
+          return webSocketDataMap;
+        });
+      } catch (listenerError) {
+        console.error(
+          "Failed to update WebSocket listener in store:",
+          listenerError,
+        );
+        ws.close();
+        throw new Error(`Listener update failed: ${listenerError.message}`);
+      }
+
+      return new Promise((resolve, reject) => {
+        // const connectionTimeout = setTimeout(() => {
+        //   try {
+        //     ws.close();
+        //     notifications.error("Cloud Agent WebSocket connection timeout");
+        //     reject(new Error("Connection timeout after 10000ms"));
+        //   } catch (timeoutError) {
+        //     console.error("Error during timeout handling:", timeoutError);
+        //     reject(timeoutError);
+        //   }
+        // }, 10000);
+
+        ws.onopen = () => {
+          try {
+            // clearTimeout(connectionTimeout);
+            webSocketDataStore.update((webSocketDataMap) => {
+              const wsData = webSocketDataMap.get(tabId);
+              if (wsData) {
+                wsData.messages.unshift({
+                  data: `Connected to ${url} via Cloud Agent`,
+                  transmitter: "connecter",
+                  timestamp: formatTime(new Date()),
+                  uuid: uuidv4(),
+                });
+                wsData.status = "connected";
+                webSocketDataMap.set(tabId, wsData);
+              }
+              return webSocketDataMap;
+            });
+            notifications.success(
+              "WebSocket connected successfully via Cloud Agent",
+            );
+            resolve();
+          } catch (openError) {
+            console.error("Error in onopen handler:", openError);
+            // reject(new Error(`Connection open failed: ${openError.message}`));
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            webSocketDataStore.update((webSocketDataMap) => {
+              const wsData = webSocketDataMap.get(tabId);
+              if (wsData) {
+                wsData.messages.unshift({
+                  data: event.data,
+                  transmitter: "receiver",
+                  timestamp: formatTime(new Date()),
+                  uuid: uuidv4(),
+                });
+                webSocketDataMap.set(tabId, wsData);
+              }
+              return webSocketDataMap;
+            });
+          } catch (messageError) {
+            console.error(
+              "Error processing message:",
+              messageError,
+              "Message data:",
+              event.data,
+            );
+            notifications.error("Failed to process incoming message");
+          }
+        };
+
+        ws.onerror = (error) => {
+          // clearTimeout(connectionTimeout);
+
+          try {
+            // Log the complete error event
+            console.error("Cloud Agent WebSocket error details:", {
+              readyState: ws.readyState,
+              url: ws.url,
+              protocol: ws.protocol,
+              bufferedAmount: ws.bufferedAmount,
+              extensions: ws.extensions,
+              errorEvent: {
+                type: error.type,
+                timeStamp: error.timeStamp,
+                eventPhase: error.eventPhase,
+                isTrusted: error.isTrusted,
+              },
+            });
+          } catch (errorHandlingError) {
+            console.error("Error in error handler:", errorHandlingError);
+            reject(errorHandlingError);
+          }
+        };
+
+        ws.onclose = () => {
+          try {
+            // clearTimeout(connectionTimeout);
+            webSocketDataStore.update((webSocketDataMap) => {
+              const wsData = webSocketDataMap.get(tabId);
+              if (wsData) {
+                wsData.messages.unshift({
+                  data: `Disconnected from ${url} (Cloud Agent)`,
+                  transmitter: "disconnector",
+                  timestamp: formatTime(new Date()),
+                  uuid: uuidv4(),
+                });
+                wsData.status = "disconnected";
+                webSocketDataMap.set(tabId, wsData);
+              }
+              return webSocketDataMap;
+            });
+          } catch (closeError) {
+            console.error("Error handling WebSocket close:", closeError);
+            notifications.error("Error during connection closure");
+          }
+        };
+      });
+    } catch (error) {
+      console.error("Cloud Agent connection error:", error);
+
+      // Attempt to clean up the store even if there's an error
+      try {
+        webSocketDataStore.update((webSocketDataMap) => {
+          webSocketDataMap.delete(tabId);
+          return webSocketDataMap;
+        });
+      } catch (cleanupError) {
+        console.error("Failed to clean up WebSocket store:", cleanupError);
+      }
+
+      notifications.error(
+        `Failed to connect WebSocket via Cloud Agent: ${error.message}`,
+      );
+      throw error;
+    }
+  }
 };
 
 /**
@@ -467,7 +681,8 @@ const makeHttpRequestV2 = async (
   try {
     let response;
     if (selectedAgent === "Cloud Agent") {
-      const proxyUrl = constants.PROXY_SERVICE + "/proxy/http-request";
+      // const proxyUrl = constants.PROXY_SERVICE + "/proxy/http-request";
+      const proxyUrl = "http://localhost:3000/proxy/http-request";
       response = await axios({
         data: { url, method, headers, body, contentType },
         url: proxyUrl,
@@ -606,19 +821,21 @@ const makeHttpRequestV2 = async (
   }
 };
 
-
 /**
  * Processes a Socket.IO message event for a specific tab, determining if the event should be included in the response.
  * @param _tabId - The unique identifier of the tab for which the event is being processed.
  * @param _event - The event object containing the payload with the event name and message data.
  * @returns A promise that resolves to a JSON string containing the event name and message (if included), or an empty string if the event is not included.
  */
-const processMessageEvent = async(_tabId: string, _event:{
-  payload: {
-    event: string,
-    message: any[]
-  }
-}): Promise<string> => {
+const processMessageEvent = async (
+  _tabId: string,
+  _event: {
+    payload: {
+      event: string;
+      message: any[];
+    };
+  },
+): Promise<string> => {
   await new Sleep().setTime(10);
 
   // Retrieve tab data and check event inclusion
@@ -637,41 +854,36 @@ const processMessageEvent = async(_tabId: string, _event:{
   if (socketIOresponse && isIncludeInResponse && message) {
     return JSON.stringify([
       eventName,
-      typeof message[0] === "string"
-        ? message[0]
-        : JSON.stringify(message[0]),
+      typeof message[0] === "string" ? message[0] : JSON.stringify(message[0]),
     ]);
   }
   return "";
-}
+};
 
 /**
  * Generates a message indicating a successful connection to a specified URL.
  * @param _url - The URL of the connection.
  * @returns A message indicating the connection was established.
  */
-const processConnectEvent = (_url: string): string =>{
+const processConnectEvent = (_url: string): string => {
   return `Connected from ${_url}`;
-}
+};
 
 /**
  * Generates a message indicating a disconnection from a specified URL.
- * @param _url - The URL of the disconnection. 
+ * @param _url - The URL of the disconnection.
  * @returns A message indicating the disconnection occurred.
  */
-const processDisconnectEvent = (_url: string): string =>{
+const processDisconnectEvent = (_url: string): string => {
   return `Disconnected from ${_url}`;
-}
+};
 
 /**
  * Adds a Socket.IO listener to the map associated with a specific tab ID.
  * @param _socketIo - The Socket.IO instance or listener to be associated with the tab.
  * @param _tabId - The unique identifier of the tab for which the listener is being set.
  */
-const insertSocketIoListenerToMap = (
- _socketIo :any,
-  _tabId: string,
-) => {
+const insertSocketIoListenerToMap = (_socketIo: any, _tabId: string) => {
   socketIoDataStore.update((webSocketDataMap) => {
     const wsData = webSocketDataMap.get(_tabId);
     if (wsData) {
@@ -689,7 +901,11 @@ const insertSocketIoListenerToMap = (
  * @param _data - The data message to be inserted into the Socket.IO map.
  * @param _transmitter - The transmitter type indicating the origin or purpose of the message (e.g., CONNECTER, DISCONNECTOR).
  */
-const insertSocketIoDataToMap = (_tabId: string, _data: string, _transmitter: SocketIORequestMessageTransmitterTabEnum) => {
+const insertSocketIoDataToMap = (
+  _tabId: string,
+  _data: string,
+  _transmitter: SocketIORequestMessageTransmitterTabEnum,
+) => {
   socketIoDataStore.update((SocketIoDataMap) => {
     const wsData = SocketIoDataMap.get(_tabId);
     if (wsData) {
@@ -699,17 +915,18 @@ const insertSocketIoDataToMap = (_tabId: string, _data: string, _transmitter: So
         timestamp: formatTime(new Date()),
         uuid: uuidv4(),
       });
-      if( _transmitter === SocketIORequestMessageTransmitterTabEnum.CONNECTER){
+      if (_transmitter === SocketIORequestMessageTransmitterTabEnum.CONNECTER) {
         wsData.status = SocketIORequestStatusTabEnum.CONNECTED;
-      }
-      else if( _transmitter === SocketIORequestMessageTransmitterTabEnum.DISCONNECTOR){
+      } else if (
+        _transmitter === SocketIORequestMessageTransmitterTabEnum.DISCONNECTOR
+      ) {
         wsData.status = SocketIORequestStatusTabEnum.DISCONNECTED;
       }
       SocketIoDataMap.set(_tabId, wsData);
     }
     return SocketIoDataMap;
   });
-}
+};
 
 /**
  * Removes Socket.IO from the tab data Map.
@@ -750,24 +967,24 @@ const sendSocketIoMessage = async (
     return socketIoDataMap;
   });
 
-    socketIoDataStore.update((webSocketDataMap) => {
-     const wsData = webSocketDataMap.get(_tabId);
-      const event = [];
-      event.push(_eventName);
-      event.push(_eventMessage || "(empty)");
-      if (wsData) {
-        const socketInsta = wsData.connectListener;
-        socketInsta.emit(_eventName, _eventMessage);
-        wsData.messages.unshift({
-          data: JSON.stringify(event),
-          transmitter: SocketIORequestMessageTransmitterTabEnum.SENDER,
-          timestamp: formatTime(new Date()),
-          uuid: uuidv4(),
-        });
-        webSocketDataMap.set(_tabId, wsData);
-      } 
-      return webSocketDataMap;
-    });
+  socketIoDataStore.update((webSocketDataMap) => {
+    const wsData = webSocketDataMap.get(_tabId);
+    const event = [];
+    event.push(_eventName);
+    event.push(_eventMessage || "(empty)");
+    if (wsData) {
+      const socketInsta = wsData.connectListener;
+      socketInsta.emit(_eventName, _eventMessage);
+      wsData.messages.unshift({
+        data: JSON.stringify(event),
+        transmitter: SocketIORequestMessageTransmitterTabEnum.SENDER,
+        timestamp: formatTime(new Date()),
+        uuid: uuidv4(),
+      });
+      webSocketDataMap.set(_tabId, wsData);
+    }
+    return webSocketDataMap;
+  });
 };
 
 /**
@@ -775,14 +992,16 @@ const sendSocketIoMessage = async (
  * @param _url - Socket.IO server URL to connect.
  * @param _tabId - ID of the tab for which the Socket.IO connection should be established.
  * @param _headers - Headers to be sent with the Socket.IO connection.
-*/
+ */
 const connectSocketIo = async (
   _url: string,
   _tabId: string,
   _headers: string,
 ): Promise<void> => {
   console.table({ URL: _url, Headers: _headers });
-  const selectedAgent = localStorage.getItem("selectedAgent") as WorkspaceUserAgentBaseEnum;
+  const selectedAgent = localStorage.getItem(
+    "selectedAgent",
+  ) as WorkspaceUserAgentBaseEnum;
   socketIoDataStore.update((webSocketDataMap) => {
     webSocketDataMap.set(_tabId, {
       messages: [],
@@ -811,31 +1030,29 @@ const connectSocketIo = async (
     removeSocketIoDataFromMap(_tabId);
     return;
   }
-  constants.API_URL
+  constants.API_URL;
   if (selectedAgent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT) {
     const proxySocketIO = io(`${constants.SOCKET_IO_API_URL}/`, {
       path: "/socket.io", // Path to the WebSocket gateway
       transports: ["websocket"], // Ensure the transport is set to WebSocket
       query: {
-        targetUrl: urlObject.origin || "", 
-        namespace: urlObject.pathname || "/", 
-        headers: _headers 
+        targetUrl: urlObject.origin || "",
+        namespace: urlObject.pathname || "/",
+        headers: _headers,
       },
-      reconnection: false, 
+      reconnection: false,
     });
-  
+
     // store listeners inside map against tab id for future removal
-    insertSocketIoListenerToMap(
-      proxySocketIO,
-      _tabId,
-    );
-    
-    proxySocketIO.onAny(async(event, args) => {
-      if(event === "sparrow_internal_connect_error"){ // Connect_error listener from the target Socket.IO.
+    insertSocketIoListenerToMap(proxySocketIO, _tabId);
+
+    proxySocketIO.onAny(async (event, args) => {
+      if (event === "sparrow_internal_connect_error") {
+        // Connect_error listener from the target Socket.IO.
         console.error(new DOMException(args + " (URL Issue)", "ConnectError"));
         removeSocketIoDataFromMap(_tabId);
-      }
-      else if(event === "sparrow_internal_connect"){ // Connect listener from the target Socket.IO.
+      } else if (event === "sparrow_internal_connect") {
+        // Connect listener from the target Socket.IO.
         const message = processConnectEvent(_url);
         insertSocketIoDataToMap(
           _tabId,
@@ -845,56 +1062,66 @@ const connectSocketIo = async (
         notifications.success(
           `${SocketIORequestDefaultAliasBaseEnum.NAME} connected successfully.`,
         );
-      }
-      else if(event === "sparrow_internal_disconnect"){ // Disconnect listener from the target Socket.IO.
-        console.error(new DOMException(args + " (Connection Lost)", "DisconnectError"));
-         const message = processDisconnectEvent(_url);
-          insertSocketIoDataToMap(
-            _tabId,
-            message,
-            SocketIORequestMessageTransmitterTabEnum.DISCONNECTOR,
-          );
-      }
-      else{ // Message listener from the target Socket.IO.
+      } else if (event === "sparrow_internal_disconnect") {
+        // Disconnect listener from the target Socket.IO.
+        console.error(
+          new DOMException(args + " (Connection Lost)", "DisconnectError"),
+        );
+        const message = processDisconnectEvent(_url);
+        insertSocketIoDataToMap(
+          _tabId,
+          message,
+          SocketIORequestMessageTransmitterTabEnum.DISCONNECTOR,
+        );
+      } else {
+        // Message listener from the target Socket.IO.
         const message = await processMessageEvent(_tabId, {
           payload: {
             event: event,
-            message: args
-          }
+            message: args,
+          },
         });
-        if(message){
-          insertSocketIoDataToMap(_tabId, message, SocketIORequestMessageTransmitterTabEnum.RECEIVER);
+        if (message) {
+          insertSocketIoDataToMap(
+            _tabId,
+            message,
+            SocketIORequestMessageTransmitterTabEnum.RECEIVER,
+          );
         }
       }
     });
 
-     // Listen for connect_error events from the proxy Socket.IO.
-     proxySocketIO.on("connect_error", (err) => {
+    // Listen for connect_error events from the proxy Socket.IO.
+    proxySocketIO.on("connect_error", (err) => {
       console.error(new DOMException(err + " (Proxy Failed)", "ConnectError"));
       removeSocketIoDataFromMap(_tabId);
     });
-
-  }
-  else{
+  } else {
     const parsedHeaders = JSON.parse(_headers as string);
-      const headersObject: { [key: string]: string } = parsedHeaders.reduce((acc: Record<string, string> , { key, value }: {key: string, value: string}) => {
+    const headersObject: { [key: string]: string } = parsedHeaders.reduce(
+      (
+        acc: Record<string, string>,
+        { key, value }: { key: string; value: string },
+      ) => {
         acc[key] = value;
         return acc;
-      }, {} as { [key: string]: string });
+      },
+      {} as { [key: string]: string },
+    );
     delete headersObject["Sec-WebSocket-Key"];
     delete headersObject["Sec-WebSocket-Version"];
 
-    const targetSocketIO = io(`${urlObject.origin || ""}${urlObject.pathname || "/"}`, {
-      transports: ["websocket"],  
-      query: headersObject,
-      reconnection: false, 
-    });
-
-     // store listeners inside map against tab id for future removal
-     insertSocketIoListenerToMap(
-      targetSocketIO ,
-      _tabId,
+    const targetSocketIO = io(
+      `${urlObject.origin || ""}${urlObject.pathname || "/"}`,
+      {
+        transports: ["websocket"],
+        query: headersObject,
+        reconnection: false,
+      },
     );
+
+    // store listeners inside map against tab id for future removal
+    insertSocketIoListenerToMap(targetSocketIO, _tabId);
 
     // Listen for connect events from the target Socket.IO.
     targetSocketIO.on("connect", () => {
@@ -908,17 +1135,19 @@ const connectSocketIo = async (
         `${SocketIORequestDefaultAliasBaseEnum.NAME} connected successfully.`,
       );
     });
-    
+
     // Listen for connect_error events from the target Socket.IO.
     targetSocketIO.on("connect_error", (err) => {
       console.error(new DOMException(err + " (URL Issue)", "ConnectError"));
       removeSocketIoDataFromMap(_tabId);
     });
-    
+
     // Listen for disconnect events from the target Socket.IO.
     targetSocketIO.on("disconnect", (err) => {
-      console.error(new DOMException(err + " (Connection Lost)", "DisconnectError"));
-       const message = processDisconnectEvent(_url);
+      console.error(
+        new DOMException(err + " (Connection Lost)", "DisconnectError"),
+      );
+      const message = processDisconnectEvent(_url);
       insertSocketIoDataToMap(
         _tabId,
         message,
@@ -927,15 +1156,19 @@ const connectSocketIo = async (
     });
 
     // Listen for all dynamic events from the target Socket.IO.
-    targetSocketIO.onAny(async(event: string, ...args: any[]) => {
+    targetSocketIO.onAny(async (event: string, ...args: any[]) => {
       const message = await processMessageEvent(_tabId, {
         payload: {
           event: event,
-          message: args
-        }
+          message: args,
+        },
       });
-      if(message){
-        insertSocketIoDataToMap(_tabId, message, SocketIORequestMessageTransmitterTabEnum.RECEIVER);
+      if (message) {
+        insertSocketIoDataToMap(
+          _tabId,
+          message,
+          SocketIORequestMessageTransmitterTabEnum.RECEIVER,
+        );
       }
     });
   }
@@ -959,21 +1192,22 @@ const disconnectSocketIo = async (_tabId: string): Promise<void> => {
     return socketIoDataMap;
   });
 
-    socketIoDataStore.update((webSocketDataMap) => {
-      const wsData = webSocketDataMap.get(_tabId);
-       if (wsData) {
-         const socketInsta = wsData.connectListener;
-        if(wsData.agent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT){
-          socketInsta?.emit("sparrow_internal_disconnect","client io disconnect");
-        }
-        else{
-          socketInsta?.disconnect();
-        }
-       } 
-       return webSocketDataMap;
-     });
+  socketIoDataStore.update((webSocketDataMap) => {
+    const wsData = webSocketDataMap.get(_tabId);
+    if (wsData) {
+      const socketInsta = wsData.connectListener;
+      if (wsData.agent === WorkspaceUserAgentBaseEnum.CLOUD_AGENT) {
+        socketInsta?.emit(
+          "sparrow_internal_disconnect",
+          "client io disconnect",
+        );
+      } else {
+        socketInsta?.disconnect();
+      }
+    }
+    return webSocketDataMap;
+  });
 };
-
 
 export {
   makeRequest,
