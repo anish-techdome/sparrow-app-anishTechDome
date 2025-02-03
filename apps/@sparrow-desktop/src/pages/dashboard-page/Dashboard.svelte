@@ -26,6 +26,7 @@
   import Teams from "../teams-page/Teams.svelte";
   import { Modal } from "@sparrow/library/ui";
   import { CreateWorkspace } from "@sparrow/teams/features";
+  import { Checkbox } from "@sparrow/library/ui";
 
   const _viewModel = new DashboardViewModel();
   let userId;
@@ -178,6 +179,9 @@
   <!-- 
     -- Top Header having app icon and name
   -->
+    <Checkbox onToggle={()=>{
+      console.log('toggle');
+    }} />
   <Header
     environments={$environments?.filter((element) => {
       return element?.workspaceId === currentWorkspaceId;
