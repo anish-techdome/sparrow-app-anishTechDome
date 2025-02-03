@@ -27,8 +27,13 @@
   import { Modal } from "@sparrow/library/ui";
   import { CreateWorkspace } from "@sparrow/teams/features";
   import { Checkbox } from "@sparrow/library/ui";
+  import { fade } from "svelte/transition";
+  import GlobalSearch from "../../../../../packages/@sparrow-common/src/components/popup/global-search/GlobalSearch.svelte";
+  import { TeamsViewModel } from "../teams-page/Teams.ViewModel";
+  
 
-  const _viewModel = new DashboardViewModel();
+
+const _viewModel = new DashboardViewModel();
   let userId;
   const userUnsubscribe = user.subscribe(async (value) => {
     if (value) {
@@ -38,7 +43,6 @@
       await _viewModel.refreshTeamsWorkspaces(value._id);
     }
   });
-
   const environments = _viewModel.environments;
   const activeWorkspace = _viewModel.getActiveWorkspace();
   let workspaceDocuments: Observable<WorkspaceDocument[]>;
@@ -53,9 +57,13 @@
   let isLoginBannerActive = false;
   let isGuestUser = false;
   let isWorkspaceModalOpen = false;
+  let hideGlobalSearch = false;
 
   const openDefaultBrowser = async () => {
     await open(externalSparrowLink);
+  };
+  let handlehideGlobalSearch = (val:boolean) => {
+    hideGlobalSearch = val;
   };
 
   let currentWorkspaceId = "";
@@ -118,7 +126,7 @@
     }
     workspaceDocuments = await _viewModel.workspaces();
     teamDocuments = await _viewModel.getTeams();
-    // Disabling web socket for now due to issues in release_v1 deployment, can be enabled in future if required.
+     // Disabling web socket for now due to issues in release_v1 deployment, can be enabled in future if required.
     // await _viewModel.connectWebSocket();
   });
 
@@ -136,8 +144,19 @@
   let updateAvailable = false;
   let newAppVersion: string | undefined = "";
   let updater: Update | null;
+  let isGlobalSearchOpen = false;
 
   const WAIT_TIME_BEFORE_RESTART_IN_SECONDS = 5;
+
+  // Function to handle the click on the search bar
+  const handleViewGlobalSearch = () => {
+    isGlobalSearchOpen = true;
+  };
+
+  // Function to close the GlobalSearch component
+  const closeGlobalSearch = () => {
+    isGlobalSearchOpen = false;
+  };
 
   onMount(async () => {
     try {
@@ -173,12 +192,25 @@
       updateAvailable = false;
     }
   };
+
+   $: console.log("hide state", hideGlobalSearch);
 </script>
 
-<div class="dashboard d-flex flex-column" style="height: 100vh;">
-  <!-- 
-    -- Top Header having app icon and name
-  -->
+
+   {#if (isGlobalSearchOpen && (!hideGlobalSearch))}
+    <div class="global-search-overlay" transition:fade={{ duration: 300 }}
+    on:mousedown|self={closeGlobalSearch} >
+      <div
+        class="global-search-container"
+        transition:fade={{ duration: 300, delay: 150 }}
+      >
+       <GlobalSearch {closeGlobalSearch} {handlehideGlobalSearch}/>
+      </div>
+    </div>
+ 
+  {/if}
+  <div class="dashboard d-flex flex-column  {isGlobalSearchOpen ? 'blurred' : ''}" style="height: 100vh;"> 
+
     <Checkbox onToggle={()=>{
       console.log('toggle');
     }} />
@@ -201,6 +233,8 @@
     {user}
     isWebApp={false}
     onLogout={_viewModel.handleLogout}
+    isGlobalSearchOpen={isGlobalSearchOpen}
+    onSearchClick={handleViewGlobalSearch}
   />
 
   <!--
@@ -287,3 +321,50 @@
     onCreateWorkspace={_viewModel.handleCreateWorkspace}
   />
 </Modal>
+
+<style>
+    .dashboard {
+    transition: filter 300ms ease-out;
+  }
+
+  .blurred {
+    filter: blur(20px);
+    pointer-events: none;
+  }
+
+  .global-search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 60px;
+    z-index: 1000;
+  }
+
+  .global-search-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .global-search-content {
+    position: relative;
+    z-index: 1001;
+    filter: none;
+    pointer-events: auto;
+  }
+
+  .blur-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+</style>
