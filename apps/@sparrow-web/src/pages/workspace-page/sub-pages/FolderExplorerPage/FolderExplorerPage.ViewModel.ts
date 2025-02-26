@@ -111,6 +111,7 @@ class FolderExplorerPage {
     folder: Folder,
     newFolderName: string,
   ) => {
+    // console.log("handle rename for folder ** :>> ")
     if (newFolderName) {
       let userSource = {};
       if (collection.activeSync && folder?.source === "USER") {
@@ -367,19 +368,19 @@ class FolderExplorerPage {
     tab: TabDocument,
   ) => {
     let totalRequests = 0;
-    let totalWebSocket =0;
-    let totalGraphQl =0; 
-    let totalSocketIo =0;
+    let totalWebSocket = 0;
+    let totalGraphQl = 0;
+    let totalSocketIo = 0;
     const folder = await this.getFolder(collection, tab.id);
     if (folder?.items) {
       folder.items.forEach((item: CollectionItemsDto) => {
         if (item.type === ItemType.REQUEST) {
           totalRequests++;
-        }else if(item.type === ItemType.SOCKET_IO){
+        } else if (item.type === ItemType.SOCKET_IO) {
           totalSocketIo++;
-        }else if(item.type === ItemType.GRAPHQL){
+        } else if (item.type === ItemType.GRAPHQL) {
           totalGraphQl++;
-        }else if(item.type === ItemType.WEB_SOCKET){
+        } else if (item.type === ItemType.WEB_SOCKET) {
           totalWebSocket++;
         }
       });
@@ -388,8 +389,8 @@ class FolderExplorerPage {
       totalGraphQl,
       totalRequests,
       totalSocketIo,
-      totalWebSocket
-    }
+      totalWebSocket,
+    };
   };
 
   /**

@@ -1896,6 +1896,7 @@ export default class CollectionsViewModel {
     collection: CollectionDto,
     newCollectionName: string,
   ) => {
+    // console.log("in web coll.vm handleRenameColl :>> ")
     let isGuestUser;
     isGuestUserActive.subscribe((value) => {
       isGuestUser = value;
@@ -1930,6 +1931,7 @@ export default class CollectionsViewModel {
         const response = {
           data: {
             name: newCollectionName,
+            updatedAt: new Date().toString(),
           },
         };
         await this.collectionRepository.updateCollection(
@@ -1957,6 +1959,8 @@ export default class CollectionsViewModel {
     explorer: CollectionItemsDto,
     newFolderName: string,
   ) => {
+    // console.log("handle rename for folder **111 :>> ")
+
     if (newFolderName) {
       let userSource = {};
       if (collection.activeSync && explorer?.source === "USER") {
@@ -1997,6 +2001,7 @@ export default class CollectionsViewModel {
           });
         }
       } else {
+        // console.log("here 1")
         this.updateTab(collection.id, { name: newFolderName });
         const res =
           await this.collectionRepository.readRequestOrFolderInCollection(
@@ -2004,7 +2009,10 @@ export default class CollectionsViewModel {
             explorer.id,
           );
         if (res) {
+          // console.log("here 2")
+
           res.name = newFolderName;
+          res.updatedAt = new Date().toString();
         }
         this.collectionRepository.updateRequestOrFolderInCollection(
           collection.id,
@@ -2187,6 +2195,7 @@ export default class CollectionsViewModel {
     request: CollectionItemsDto,
     newRequestName: string,
   ) => {
+    // console.log("rename request too many **&&")
     let userSource = {};
     if (request.source === "USER") {
       userSource = {
@@ -2210,6 +2219,8 @@ export default class CollectionsViewModel {
           );
         const storage = request;
         storage.name = newRequestName;
+        response.updatedAt = new Date().toString();
+        // console.log("if :>> ", response)
         await this.collectionRepository.updateRequestOrFolderInCollection(
           collection.id,
           request.id,
@@ -2229,6 +2240,9 @@ export default class CollectionsViewModel {
         );
         const storage = request;
         storage.name = newRequestName;
+        response.updatedAt = new Date().toString();
+        // console.log("if else:>> ", response)
+
         await this.collectionRepository.updateRequestInFolder(
           collection.id,
           folder.id,
@@ -3097,11 +3111,12 @@ export default class CollectionsViewModel {
     _socketIo: CollectionItemsDto,
     _folder: CollectionItemsDto,
   ): Promise<boolean> => {
-    let userSource = {};
+    // let userSource = {}; // commenting due to esLint error
     if (_collection.activeSync) {
-      userSource = {
-        currentBranch: _collection.currentBranch,
-      };
+      // commenting due to esLint error
+      // userSource = {
+      //   currentBranch: _collection.currentBranch,
+      // };
     }
 
     let isGuestUser = true;
@@ -3183,11 +3198,12 @@ export default class CollectionsViewModel {
     _graphql: CollectionItemsDto,
     _folder: CollectionItemsDto,
   ): Promise<boolean> => {
-    let userSource = {};
+    // let userSource = {}; // commenting due to esLint error
     if (_collection.activeSync) {
-      userSource = {
-        currentBranch: _collection.currentBranch,
-      };
+      // commenting due to esLint error
+      // userSource = {
+      //   currentBranch: _collection.currentBranch,
+      // };
     }
 
     let isGuestUser = true;
@@ -5006,7 +5022,7 @@ export default class CollectionsViewModel {
     if (path.length > 0) {
       const graphqlTabAdapter = new GraphqlTabAdapter();
       const unadaptedRequest = graphqlTabAdapter.unadapt(componentData as Tab);
-      let req = {
+      const req = {
         id: uuidv4(),
         name: tabName,
         description,

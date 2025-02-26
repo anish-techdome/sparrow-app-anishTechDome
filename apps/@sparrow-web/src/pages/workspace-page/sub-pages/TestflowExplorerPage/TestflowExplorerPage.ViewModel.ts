@@ -310,7 +310,7 @@ export class TestflowExplorerPageViewModel {
    * Handles running the test flow by processing each node sequentially and recording the results
    */
   public handleSampleTestFlowRun = (): TFNodeStoreType => {
-    const progressiveTab = createDeepCopy(this._tab.getValue());
+    // const progressiveTab = createDeepCopy(this._tab.getValue());
     const adaptedRequest = new InitRequestTab("fewfe", "fewfe");
     adaptedRequest.updateName("Sample API");
     adaptedRequest.updateUrl("https://sample-api.com/");
@@ -597,7 +597,7 @@ export class TestflowExplorerPageViewModel {
    */
   public deleteNodeResponse = (tabId: string, id: string) => {
     // Create a deep copy of the current tab data
-    const progressiveTab = createDeepCopy(this._tab.getValue());
+    // const progressiveTab = createDeepCopy(this._tab.getValue());
 
     testFlowDataStore.update((testFlowDataMap) => {
       // Retrieve the data for the specific tab using tabId
@@ -750,12 +750,14 @@ export class TestflowExplorerPageViewModel {
     });
     const isGuestUser = guestUser?.getLatest().toMutableJSON().isGuestUser;
     if (isGuestUser) {
+      // console.log("yes guest user :>> ")
       await this.testflowRepository.updateTestflow(
         currentTestflow?.id as string,
         {
           name: currentTestflow.name,
           nodes: currentTestflow?.property?.testflow?.nodes,
           edges: currentTestflow?.property?.testflow?.edges,
+          updatedAt: new Date().toString(),
         },
       );
       const progressiveTab = this._tab.getValue();
@@ -773,7 +775,7 @@ export class TestflowExplorerPageViewModel {
       );
 
       testFlowDataStore.update((testFlowDataMap) => {
-        let wsData = testFlowDataMap.get(progressiveTab?.tabId as string); // Retrieve data for the current tab
+        const wsData = testFlowDataMap.get(progressiveTab?.tabId as string); // Retrieve data for the current tab
 
         // Update existing data or initialize if not found
         if (wsData) {
@@ -797,6 +799,7 @@ export class TestflowExplorerPageViewModel {
         edges: currentTestflow?.property?.testflow?.edges,
       },
     );
+    // console.log("response :>> ", response)
     if (response.isSuccessful) {
       this.testflowRepository.updateTestflow(
         response.data.data._id,
@@ -826,7 +829,7 @@ export class TestflowExplorerPageViewModel {
       }
     }
     testFlowDataStore.update((testFlowDataMap) => {
-      let wsData = testFlowDataMap.get(progressiveTab?.tabId as string); // Retrieve data for the current tab
+      const wsData = testFlowDataMap.get(progressiveTab?.tabId as string); // Retrieve data for the current tab
 
       // Update existing data or initialize if not found
       if (wsData) {

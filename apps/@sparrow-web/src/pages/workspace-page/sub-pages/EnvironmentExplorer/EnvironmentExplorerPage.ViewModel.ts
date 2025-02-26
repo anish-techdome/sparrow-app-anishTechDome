@@ -96,7 +96,7 @@ export class EnvironmentExplorerViewModel {
     let result = true;
     const progressiveTab = createDeepCopy(this._tab.getValue());
 
-    let environmentServer = await this.environmentRepository.readEnvironment(
+    const environmentServer = await this.environmentRepository.readEnvironment(
       progressiveTab.id,
     );
 
@@ -163,6 +163,8 @@ export class EnvironmentExplorerViewModel {
    * @description - saves environment to the mongo server
    */
   public saveEnvironment = async () => {
+    // console.log("OnSave env :>> ")
+
     const currentEnvironment = this._tab.getValue();
     const activeWorkspace = await this.workspaceRepository.readWorkspace(
       currentEnvironment.path.workspaceId,
@@ -178,6 +180,7 @@ export class EnvironmentExplorerViewModel {
         {
           name: currentEnvironment.name,
           variable: currentEnvironment?.property?.environment?.variable,
+          updatedAt: new Date().toString(),
         },
       );
       const progressiveTab = this._tab.getValue();

@@ -26,6 +26,7 @@ export class EnvironmentRepository {
         },
       })
       .exec();
+    // console.log("updating env :>> ", data)
     environment.incrementalModify((value) => {
       if (data._id) value.id = data._id;
       if (data.name) value.name = data.name;

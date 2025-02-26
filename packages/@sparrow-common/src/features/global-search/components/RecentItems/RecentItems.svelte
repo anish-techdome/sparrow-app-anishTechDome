@@ -49,7 +49,6 @@
     WEBSOCKET: "#3670f7",
     GRAPHQL: "#F15EB0",
   };
- 
 
   const getRequestDetails = (request) => {
     switch (request.type) {
@@ -151,7 +150,7 @@
       icon: StackIcon,
       nav: (item) => handleGlobalSearchEnvironmentNavigation(item),
       getName: (item) => item.title,
-      getPath: (item) => "",
+      getPath: () => "",
     },
     flows: {
       items: filteredTestflows,
@@ -173,17 +172,17 @@
     {
       key: "collections",
       condition: filteredCollection && filteredCollection[0],
-      items: filteredCollection ? [filteredCollection[0]] : [],
+      items: filteredCollection ? filteredCollection.slice(0, 3) : [],
     },
     {
       key: "environments",
       condition: filteredEnvironments && filteredEnvironments[0],
-      items: filteredEnvironments ? [filteredEnvironments[0]] : [],
+      items: filteredEnvironments ? filteredEnvironments.slice(0, 3) : [],
     },
     {
       key: "folders",
       condition: filteredFolder && filteredFolder[0],
-      items: filteredFolder ? [filteredFolder[0]] : [],
+      items: filteredFolder ? filteredFolder.slice(0, 3) : [],
     },
     {
       key: "workspaces",
@@ -193,7 +192,7 @@
     {
       key: "flows",
       condition: filteredTestflows && filteredTestflows.length,
-      items: filteredTestflows ? filteredTestflows.slice(0, 1) : [],
+      items: filteredTestflows ? filteredTestflows.slice(0, 3) : [],
     },
   ];
 
@@ -467,7 +466,13 @@
                 url: config.getUrl ? config.getUrl(item) : undefined,
               }}
               icon={config.getIcon ? config.getIcon(item) : config.icon}
-              iconProps={config.getIconProps ? config.getIconProps(item) : {color: "var(--text-ds-neutral-300)" , width: "16px" , height: "16px"}}
+              iconProps={config.getIconProps
+                ? config.getIconProps(item)
+                : {
+                    color: "var(--text-ds-neutral-300)",
+                    width: "16px",
+                    height: "16px",
+                  }}
               onClick={() => config.nav(item)}
             />
           {/if}
@@ -489,7 +494,9 @@
     gap: 4px;
     overflow-y: auto;
   }
-  .recent-section {
+
+  /* commenting the below class because of unused and eslint was giving error, so */
+  /* .recent-section { 
     margin-bottom: 12px;
-  }
+  } */
 </style>

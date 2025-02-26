@@ -47,6 +47,8 @@ export class TestflowRepository {
         },
       })
       .exec();
+
+    // console.log("updating test flows ", data)
     testflow?.incrementalModify((value: TFRxDocumentType) => {
       if (data.name) value.name = data.name;
       if (data?.nodes) value.nodes = data.nodes;

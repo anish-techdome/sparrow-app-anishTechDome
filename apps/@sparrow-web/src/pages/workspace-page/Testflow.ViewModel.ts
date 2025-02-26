@@ -158,7 +158,7 @@ export class TestflowViewModel {
       let isFirstTimeUsingTestFlow = false;
       isFirstTimeInTestFlow.subscribe((value) => {
         isFirstTimeUsingTestFlow = value;
-        console.log("isFirstTimeUsingTestFlow", isFirstTimeUsingTestFlow);
+        // console.log("isFirstTimeUsingTestFlow", isFirstTimeUsingTestFlow);
       });
       if (isFirstTimeUsingTestFlow) {
         currentStep.set(3);
@@ -237,6 +237,7 @@ export class TestflowViewModel {
     });
     const isGuestUser = guestUser?.getLatest().toMutableJSON().isGuestUser;
     if (isGuestUser) {
+      // console.log("updating testflow with id :>> ", testflow._id)
       this.testflowRepository.updateTestflow(testflow._id, {
         name: newTestflowName,
         updatedAt: new Date().toString(),
