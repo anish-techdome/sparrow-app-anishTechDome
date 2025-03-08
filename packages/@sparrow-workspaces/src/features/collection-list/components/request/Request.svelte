@@ -5,6 +5,7 @@
   import { Button } from "@sparrow/library/ui";
   import { Tooltip } from "@sparrow/library/ui";
   import { Options } from "@sparrow/library/ui";
+  import { InlineInput } from "@sparrow/library/forms";
   import { HttpRequestDefaultNameBaseEnum } from "@sparrow/common/types/workspace/http-request-base";
 
   // ---- Helper functions
@@ -94,10 +95,11 @@
   }
 
   let newRequestName: string = "";
+  let inputFieldState = "default";
 
   const handleRenameInput = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    newRequestName = target.value.trim();
+    // const target = event.target as HTMLInputElement;
+    newRequestName = event.detail.trim(); // target.detial is valid due to Custom Event from InlineInput comp.
   };
 
   const onRenameBlur = async () => {
@@ -114,12 +116,14 @@
     newRequestName = "";
   };
 
+  // the below fn can be removed bcoz InlineInput comp. handles itself
   const onRenameInputKeyPress = (event: KeyboardEvent) => {
     if (event.key === "Enter") {
-      const inputField = document.getElementById(
-        "renameInputFieldFile",
-      ) as HTMLInputElement;
-      inputField.blur();
+      // const inputField = document.getElementById(
+      //   "renameInputFieldFile",
+      // ) as HTMLInputElement;
+      // inputField.blur();
+      // inputFieldState = "focused";
     }
   };
 
@@ -227,7 +231,8 @@
       {
         onClick: () => {
           isRenaming = true;
-          setTimeout(() => inputField.focus(), 100);
+          inputFieldState = "typing"; // To bring the user to start typing
+          // setTimeout(() => inputField.focus(), 100);
         },
         displayText: `Rename ${HttpRequestDefaultNameBaseEnum.NAME}`,
         disabled: false,
@@ -327,7 +332,20 @@
     </div>
 
     {#if isRenaming}
-      <input
+      <InlineInput
+        id={"renameInputFieldFile"}
+        width={"60%"}
+        type="text"
+        value={api.name}
+        on:input={handleRenameInput}
+        {inputFieldState}
+        on:blur={onRenameBlur}
+        on:keydown={onRenameInputKeyPress}
+        class="text-fs-18 bg-transparent ellipsis fw-normal px-2"
+        style="outline:none;"
+        size="small"
+      />
+      <!-- <input
         class="py-0 renameInputFieldFile"
         style="font-size: 12px; width: calc(100% - 50px); "
         id="renameInputFieldFile"
@@ -339,7 +357,7 @@
         on:input={handleRenameInput}
         on:blur={onRenameBlur}
         on:keydown={onRenameInputKeyPress}
-      />
+      /> -->
     {:else}
       <div
         class="api-name ellipsis {api?.isDeleted && 'api-name-deleted'}"

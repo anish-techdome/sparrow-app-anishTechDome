@@ -69,7 +69,7 @@
   import { Modal } from "@sparrow/library/ui";
   import { Button } from "@sparrow/library/ui";
   import { Tooltip } from "@sparrow/library/ui";
-  import { Select } from "@sparrow/library/forms";
+  import { InlineInput, Select } from "@sparrow/library/forms";
 
   /**
    * Enums
@@ -99,6 +99,7 @@
   let totalWebSocket: number = 0;
   let totalSocketIo: number = 0;
   let totalGraphQl: number = 0;
+  let collectionName: string = collection?.name || "Untitled Collection";
 
   /**
    * Function to update isSynced, totalRequests and totalFolders, and lastUpdated
@@ -187,7 +188,7 @@
   >
     <div class="d-flex gap-2 mb-4">
       <div class="d-flex flex-column flex-grow-1">
-        <input
+        <!-- <input
           type="text"
           required
           maxlength={100}
@@ -210,7 +211,27 @@
               onRenameInputKeyPress();
             }
           }}
+        /> -->
+
+        <InlineInput
+          id={"environment-name"}
+          width={"60%"}
+          type="text"
+          bind:value={collectionName}
+          on:input={(e) => {
+            // handleCurrentEnvironmentNameChange(environmentName, "");
+          }}
+          on:blur={(e) => {
+            // handleCurrentEnvironmentNameChange(environmentName, "blur");
+          }}
+          defaultBorderColor="transparent"
+          class="text-fs-18 bg-transparent ellipsis fw-normal px-2"
+          style="outline:none;"
+          disabled={false}
+          placeholder=""
+          size="large"
         />
+
         {#if tab?.activeSync}
           <div class="d-flex">
             <Select
