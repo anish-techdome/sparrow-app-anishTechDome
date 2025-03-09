@@ -33,7 +33,7 @@
   export let maxlength = 500;
   export let disabled = false;
   export let placeholderColor = "gray";
-  export let placeholder = "placeholder";
+  export let placeholder = "Type here ...";
 
   let componentClass = "";
   let componentStyle = "";
@@ -67,19 +67,19 @@
   }
 
   $: borderStyle = extractBorderHighlight(inputFieldState);
-  // $: console.log(" fffKK ", borderStyle);
+  $: console.log("Updated border style:", borderStyle);
 
   // When the state changes to Typing, focus the input field
   $: {
     if (inputFieldState === States.Typing && inputElement) {
-      console.log("Current Input Value: ", inputElement.value); // ✅ Logs the current value
+      // console.log("Current Input Value: ", inputElement.value); // ✅ Logs the current value
       inputElement.focus();
       inputFieldState = States.Typing;
     }
   }
 
   const extractBorderHighlight = (state: States) => {
-    // console.log("Extracting the state!!");
+    // console.log("Extracting the state!! ", state);
     let borderSize = "1px";
     let color = defaultBorderColor;
 
@@ -102,20 +102,50 @@
     return `${borderSize} solid ${color}`;
   };
 
-  /**
-   * blur input on Enter key press
-   * @param event - keyboard event
-   */
+  const onMouseEnter = () => {
+    // console.log("input mouse enter !!!");
+    if (
+      inputFieldState !== States.Typing &&
+      inputFieldState !== States.Focused
+    ) {
+      inputFieldState = States.Hover;
+    }
+  };
+  const onMouseLeave = () => {
+    // console.log("On Mouse Leave!");
+    if (
+      inputFieldState !== States.Typing &&
+      inputFieldState !== States.Focused
+    ) {
+      inputFieldState = States.Default;
+    }
+  };
+  const onFocus = (event) => {
+    // console.log("On Focus !! State after:", inputFieldState);
+    inputFieldState = States.Focused;
+    dispatch("focused", event?.target?.value);
+  };
+  const onBlur = (event) => {
+    // console.log("On Blur !! State after:", inputFieldState);
+    inputFieldState = States.Default;
+    dispatch("blur", event?.target?.value);
+  };
+  const onInput = (event) => {
+    // console.log("On Blur !! State after:", inputFieldState);
+    inputFieldState = States.Typing;
+    value = event?.target?.value;
+    dispatch("input", event?.target?.value);
+  };
   const onKeyPress = (event: KeyboardEvent) => {
     if (event.key === "Enter") {
-      console.log("Enter clicker");
+      // console.log("Enter click !!");
       inputFieldState = States.Entered;
-      inputElement?.blur();
+      inputElement?.blur(); // Trigger onBlur event
     }
   };
 </script>
 
-<div
+<!-- <div
   class="position-relative"
   style="min-width: 120px; max-width: 540px; width: {width}; height:{height}; !important; "
   on:mouseenter={() => {
@@ -134,66 +164,37 @@
     inputFieldState = States.Default;
     isHovered = false;
   }}
->
-  <input
-    bind:this={inputElement}
-    {id}
-    on:focus={() => {
-      console.log("On Focus !!");
-      inputFieldState = States.Focused;
-      isFocused = true;
-      dispatch("focused", event?.target?.value);
-    }}
-    on:blur={() => {
-      console.log("On Blur !!");
-      // inputFieldState = States.Entered;
-      inputFieldState = States.Default;
-      isFocused = false;
-      dispatch("blur", event?.target?.value);
-    }}
-    {value}
-    on:input={(event) => {
-      console.log("On Input !!");
-      inputFieldState = States.Typing;
-      value = event?.target?.value;
-      dispatch("input", event?.target?.value);
-    }}
-    on:keydown={onKeyPress}
-    type="text"
-    {maxlength}
-    class=" w-100 {componentClass}"
-    {placeholder}
-    style=" {componentStyle} height: 100%; {type === 'search'
-      ? `padding-left:${height} !important;`
-      : ''} {type === 'text' && isEditIconRequired && isHovered
-      ? 'padding-right:35px !important;'
-      : ''} border:{borderStyle}; --placeholder-color: {placeholderColor};
-      font-weight: {fontWeight};
-      font-size: {fontSize}
-      "
-    {disabled}
-  />
+> -->
+<input
+  bind:this={inputElement}
+  {id}
+  {type}
+  {value}
+  {disabled}
+  {maxlength}
+  {placeholder}
+  on:mouseenter={onMouseEnter}
+  on:mouseleave={onMouseLeave}
+  on:focus={onFocus}
+  on:blur={onBlur}
+  on:input={onInput}
+  on:keydown={onKeyPress}
+  class="rounded-1 p-1 position-relative {componentClass}"
+  style="
+  min-width: 120px; 
+  max-width: 540px; 
+  width: {width}; 
+  height:{height} ;
+  border:{borderStyle} !important; 
+  outline: none;
+  --placeholder-color: {placeholderColor};
+  font-weight: {fontWeight};
+  font-size: {fontSize};
+  {componentStyle};
+    "
+/>
 
-  {#if type === "search"}
-    <span
-      class="position-absolute d-flex align-items-center justify-content-center m-0 p-0"
-      style="top: 0; left: 0; bottom: 0; width: {height}; "
-    >
-      <span class="SearchIconClass" style="margin-top:1px;">
-        <SearchIcon
-          height={iconSize}
-          width={iconSize}
-          color={searchIconColor}
-        />
-      </span>
-    </span>
-  {/if}
-  {#if type === "text" && isHovered && isEditIconRequired && !disabled}
-    <span class="position-absolute" style="top:2px; right: 10px">
-      <PencilIcon height={iconSize} width={iconSize} color={"white"} />
-    </span>
-  {/if}
-</div>
+<!-- </div> -->
 
 <style>
   .SearchIconClass {
@@ -205,5 +206,23 @@
   }
   input::placeholder {
     color: var(--placeholder-color);
+  }
+
+  input:disabled {
+    color: #ffffff !important;
+  }
+
+  .api-name-field {
+    height: 24px;
+    background-color: transparent;
+    color: var(--bg-ds-neutral-50);
+    padding: 4px 2px;
+    outline: none;
+    border-radius: 4px !important;
+    border: 1px solid var(--bg-ds-primary-300);
+    caret-color: var(--bg-ds-primary-300);
+  }
+  .api-name-field:focus {
+    border: 1px solid var(--border-ds-primary-300) !important;
   }
 </style>

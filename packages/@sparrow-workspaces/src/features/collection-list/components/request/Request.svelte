@@ -114,6 +114,7 @@
     }
     isRenaming = false;
     newRequestName = "";
+    inputFieldState = "default";
   };
 
   // the below fn can be removed bcoz InlineInput comp. handles itself
@@ -123,7 +124,7 @@
       //   "renameInputFieldFile",
       // ) as HTMLInputElement;
       // inputField.blur();
-      // inputFieldState = "focused";
+      inputFieldState = "focused";
     }
   };
 
@@ -231,7 +232,9 @@
       {
         onClick: () => {
           isRenaming = true;
-          inputFieldState = "typing"; // To bring the user to start typing
+          setTimeout(() => {
+            inputFieldState = "typing"; // To bring the user to start typing
+          }, 100);
           // setTimeout(() => inputField.focus(), 100);
         },
         displayText: `Rename ${HttpRequestDefaultNameBaseEnum.NAME}`,
@@ -334,18 +337,28 @@
     {#if isRenaming}
       <InlineInput
         id={"renameInputFieldFile"}
-        width={"60%"}
+        width={"40%"}
         type="text"
         value={api.name}
-        on:input={handleRenameInput}
         {inputFieldState}
+        placeholder={"Type name here ..."}
+        on:input={handleRenameInput}
         on:blur={onRenameBlur}
         on:keydown={onRenameInputKeyPress}
-        class="text-fs-18 bg-transparent ellipsis fw-normal px-2"
-        style="outline:none;"
+        class="py-0"
+        style="
+          height: 24px;
+          background-color: transparent;
+          color: var(--bg-ds-neutral-50);
+          padding: 4px 2px;
+          outline: none;
+          border-radius: 4px !important;
+          caret-color: var(--bg-ds-primary-300);
+          calc(100% - 50px);
+        "
         size="small"
       />
-      <!-- <input
+      <!-- <input 
         class="py-0 renameInputFieldFile"
         style="font-size: 12px; width: calc(100% - 50px); "
         id="renameInputFieldFile"

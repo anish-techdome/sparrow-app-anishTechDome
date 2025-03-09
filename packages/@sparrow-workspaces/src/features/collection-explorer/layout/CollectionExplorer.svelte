@@ -99,8 +99,7 @@
   let totalWebSocket: number = 0;
   let totalSocketIo: number = 0;
   let totalGraphQl: number = 0;
-  let collectionName: string = collection?.name || "Untitled Collection";
-
+  let inputFieldState = "default";
   /**
    * Function to update isSynced, totalRequests and totalFolders, and lastUpdated
    */
@@ -132,6 +131,7 @@
       "renameInputFieldCollection",
     ) as HTMLInputElement;
     inputField.blur();
+    inputFieldState = "default";
   };
 
   const resetInputField = () => {
@@ -214,21 +214,29 @@
         /> -->
 
         <InlineInput
-          id={"environment-name"}
+          id={"renameInputFieldCollection"}
           width={"60%"}
           type="text"
-          bind:value={collectionName}
-          on:input={(e) => {
-            // handleCurrentEnvironmentNameChange(environmentName, "");
+          value={collection?.name || "Untitled"}
+          {inputFieldState}
+          disabled={userRole === WorkspaceRole.WORKSPACE_VIEWER ||
+            tab?.activeSync}
+          on:blur={(event) => {
+            const newValue = event?.detail?.trim();
+            const previousValue = tab.name;
+            if (newValue === "") {
+              resetInputField();
+            } else if (newValue !== previousValue) {
+              onRename(collection, newValue);
+            }
           }}
-          on:blur={(e) => {
-            // handleCurrentEnvironmentNameChange(environmentName, "blur");
+          on:keydown={(event) => {
+            if (event.key === "Enter") {
+              onRenameInputKeyPress();
+            }
           }}
-          defaultBorderColor="transparent"
-          class="text-fs-18 bg-transparent ellipsis fw-normal px-2"
-          style="outline:none;"
-          disabled={false}
-          placeholder=""
+          class="text-fs-18 bg-transparent ellipsis fw-normal"
+          style="outline: none"
           size="large"
         />
 
