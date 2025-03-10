@@ -9,7 +9,7 @@
   import type { KeyValueChecked } from "@sparrow/common/types/workspace";
   import { partition } from "rxjs";
   import { Button, Tooltip } from "@sparrow/library/ui";
-  import { Checkbox } from "@sparrow/library/forms";
+  import { Checkbox, InlineInput } from "@sparrow/library/forms";
   import { DeleteRegular, ReOrderDotsRegular } from "@sparrow/library/icons";
 
   /**
@@ -241,6 +241,20 @@
                     class="table-input-v2 w-100 text-fs-12 placeholder-color"
                     {disabled}
                   />
+
+                  <!-- <InlineInput
+                    id={"env-key-feild"}
+                    bind:value={element.key}
+                    inputFieldState="default"
+                    placeholder={"Add Variable"}
+                    {disabled}
+                    on:input={() => {
+                      updatePairs(index);
+                    }}
+                    class="w-100"
+                    style=""
+                    size="small"
+                  /> -->
                 </div>
 
                 <div class="w-50 position-relative">
@@ -254,6 +268,20 @@
                     class="w-100 text-fs-12 placeholder-color"
                     {disabled}
                   />
+
+                  <!-- <InlineInput
+                    id={"env-value-feild"}
+                    bind:value={element.value}
+                    inputFieldState="default"
+                    placeholder={"Add Value"}
+                    {disabled}
+                    on:input={() => {
+                      updatePairs(index);
+                    }}
+                    class="w-100"
+                    style=""
+                    size="small"
+                  /> -->
                 </div>
               </div>
 
