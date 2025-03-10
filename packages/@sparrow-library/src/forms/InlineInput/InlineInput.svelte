@@ -23,16 +23,13 @@
   export let type: "text" | "password" | "search" = "text";
 
   let inputElement: HTMLInputElement; // Reference to the input field
-  export let width = "398px";
-  export let height = "30px";
-  let fontWeight = "500";
-  let fontSize = "16px";
+  let width = "398px";
+  let height = "40px";
 
   export let id = "";
   export let value = "";
   export let maxlength = 500;
   export let disabled = false;
-  export let placeholderColor = "gray";
   export let placeholder = "Type here ...";
 
   let componentClass = "";
@@ -44,30 +41,18 @@
   export let hoveredBorderColor = "#9B9DA1";
   export let focusedBorderColor = "#6894F9";
 
-  export let iconSize = "14px";
-  export let isEditIconRequired = false;
-  export let searchIconColor = "var(--defaultcolor)";
-
-  let isHovered = false;
-  let isFocused = false;
   export let inputFieldState: States = States.Default;
   const dispatch = createEventDispatcher();
 
   $: {
     if (size === Size.Small) {
-      fontSize = "12px";
-      fontWeight = "500";
     } else if (size === Size.Medium) {
-      fontSize = "16px";
-      fontWeight = "500";
     } else if (size === Size.Large) {
-      fontSize = "20px";
-      fontWeight = "600";
     }
   }
 
   $: borderStyle = extractBorderHighlight(inputFieldState);
-  $: console.log("Updated border style:", borderStyle);
+  // $: console.log("Updated border style:", borderStyle);
 
   // When the state changes to Typing, focus the input field
   $: {
@@ -104,19 +89,13 @@
 
   const onMouseEnter = () => {
     // console.log("input mouse enter !!!");
-    if (
-      inputFieldState !== States.Typing &&
-      inputFieldState !== States.Focused
-    ) {
+    if (![States.Typing, States.Focused].includes(inputFieldState)) {
       inputFieldState = States.Hover;
     }
   };
   const onMouseLeave = () => {
     // console.log("On Mouse Leave!");
-    if (
-      inputFieldState !== States.Typing &&
-      inputFieldState !== States.Focused
-    ) {
+    if (![States.Typing, States.Focused].includes(inputFieldState)) {
       inputFieldState = States.Default;
     }
   };
@@ -145,26 +124,6 @@
   };
 </script>
 
-<!-- <div
-  class="position-relative"
-  style="min-width: 120px; max-width: 540px; width: {width}; height:{height}; !important; "
-  on:mouseenter={() => {
-    // console.log("On Mouse Enter!");
-    if (inputFieldState !== States.Typing) {
-      inputFieldState = States.Hover;
-    }
-    // inputFieldState = States.Hover;
-    isHovered = true;
-  }}
-  on:mouseleave={() => {
-    // console.log("On Mouse Leave!");
-    if (inputFieldState !== States.Typing) {
-      inputFieldState = States.Default;
-    }
-    inputFieldState = States.Default;
-    isHovered = false;
-  }}
-> -->
 <input
   bind:this={inputElement}
   {id}
@@ -179,50 +138,46 @@
   on:blur={onBlur}
   on:input={onInput}
   on:keydown={onKeyPress}
-  class="rounded-1 p-1 position-relative {componentClass}"
+  class="input-{size} position-relative bg-transparent ellipsis {componentClass}"
   style="
-  min-width: 120px; 
-  max-width: 540px; 
-  width: {width}; 
-  height:{height} ;
-  border:{borderStyle} !important; 
-  outline: none;
-  --placeholder-color: {placeholderColor};
-  font-weight: {fontWeight};
-  font-size: {fontSize};
-  {componentStyle};
-    "
+        border:{borderStyle} !important; 
+        {componentStyle};
+      "
 />
 
-<!-- </div> -->
-
 <style>
-  .SearchIconClass {
-    display: flex;
-  }
   input {
+    min-width: 120px;
+    max-width: 540px;
+    width: 398px;
+    border-radius: 4px !important;
+    outline: none;
+    font-family: "Inter", sans-serif;
     caret-color: var(--border-primary-300);
-    border: 1px solid transparent;
   }
   input::placeholder {
-    color: var(--placeholder-color);
+    color: gray;
   }
-
   input:disabled {
     color: #ffffff !important;
   }
 
-  .api-name-field {
+  .input-small {
     height: 24px;
-    background-color: transparent;
-    color: var(--bg-ds-neutral-50);
-    padding: 4px 2px;
-    outline: none;
-    border-radius: 4px !important;
-    border: 1px solid var(--bg-ds-primary-300);
-    caret-color: var(--bg-ds-primary-300);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 4px;
   }
-  .api-name-field:focus {
-    border: 1px solid var(--border-ds-primary-300) !important;
+  .input-medium {
+    height: 40px;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 8px;
+  }
+  .input-large {
+    height: 40px;
+    font-size: 20px;
+    font-weight: 600;
+    padding: 8px;
   }
 </style>

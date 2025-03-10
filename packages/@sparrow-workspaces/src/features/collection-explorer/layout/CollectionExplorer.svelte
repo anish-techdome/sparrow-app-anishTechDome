@@ -215,8 +215,6 @@
 
         <InlineInput
           id={"renameInputFieldCollection"}
-          width={"60%"}
-          type="text"
           value={collection?.name || "Untitled"}
           {inputFieldState}
           disabled={userRole === WorkspaceRole.WORKSPACE_VIEWER ||
@@ -235,8 +233,8 @@
               onRenameInputKeyPress();
             }
           }}
-          class="text-fs-18 bg-transparent ellipsis fw-normal"
-          style="outline: none"
+          class=""
+          style=""
           size="large"
         />
 

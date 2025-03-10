@@ -337,25 +337,14 @@
     {#if isRenaming}
       <InlineInput
         id={"renameInputFieldFile"}
-        width={"40%"}
-        type="text"
         value={api.name}
         {inputFieldState}
         placeholder={"Type name here ..."}
         on:input={handleRenameInput}
         on:blur={onRenameBlur}
         on:keydown={onRenameInputKeyPress}
-        class="py-0"
-        style="
-          height: 24px;
-          background-color: transparent;
-          color: var(--bg-ds-neutral-50);
-          padding: 4px 2px;
-          outline: none;
-          border-radius: 4px !important;
-          caret-color: var(--bg-ds-primary-300);
-          calc(100% - 50px);
-        "
+        class=""
+        style="width: calc(100% - 50px);"
         size="small"
       />
       <!-- <input 
