@@ -314,7 +314,7 @@
         style="flex:1; overflow:auto; margin-top: 12px;"
       >
         <Splitpanes class="explorer-chatbot-splitter">
-          <Pane class="position-relative bg-transparent">
+          <Pane class="position-relative bg-transparent overflow-auto">
             <!--Disabling the Quick Help feature, will be taken up in next release-->
             {#if isPopoverContainer}
               <Popover
