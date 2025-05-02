@@ -452,6 +452,19 @@
 
   // Run whenever component state changes
   afterUpdate(() => {
+    
+    // Handling the mergeview state while component state changes
+    if (!isMergeViewEnabled && value !== codeMirrorView.state.doc.toString()) {
+      codeMirrorView.dispatch({
+        changes: {
+          from: 0,
+          to: codeMirrorView.state.doc.length,
+          insert: value,
+        },
+        annotations: [{ autoChange: true }],
+      });
+    }
+
     handleCodeMirrorSyntaxFormat(
       codeMirrorView,
       languageConf,
